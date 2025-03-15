@@ -27,7 +27,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        cd terraform-gke
+                        cd gke
                         terraform plan -out=tfplan
                     '''
                 }
@@ -38,7 +38,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        cd terraform-gke
+                        cd gke
                         terraform apply -auto-approve tfplan
                     '''
                 }
