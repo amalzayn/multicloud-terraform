@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-username/terraform-gke.git'
+                git branch: 'main', url: 'https://github.com/amalzayn/mulitcloud-terraform/terraform-gke.git'
             }
         }
 
