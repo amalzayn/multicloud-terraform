@@ -17,7 +17,7 @@ pipeline {
                 script {
                     sh '''
                         cd gke
-                        terraform init
+                       /usr/local/bin/terraform init
                     '''
                 }
             }
@@ -28,7 +28,7 @@ pipeline {
                 script {
                     sh '''
                         cd gke
-                        terraform plan -out=tfplan
+                       /usr/local/bin/terraform plan -out=tfplan
                     '''
                 }
             }
@@ -39,7 +39,7 @@ pipeline {
                 script {
                     sh '''
                         cd gke
-                        terraform apply -auto-approve tfplan
+                        /usr/local/bin/terraform apply -auto-approve tfplan
                     '''
                 }
             }
