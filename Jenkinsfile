@@ -1,50 +1,48 @@
 pipeline {
-    agent any
+    agent any  
 
     environment {
-        GOOGLE_CREDENTIALS = credentials('GCP_CREDENTIALS')
-        PROJECT_ID = 'your-gcp-project-id'
-        REGION = 'us-east1'
-        CLUSTER_NAME = 'gke-cluster'
+        GCP_SERVICE_ACCOUNT = credentials('gcp-json-key') // Use Jenkins credential store
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git 'https://github.com/your-repo.git'
-            }
-        }
-
-        stage('Authenticate with GCP') {
-            steps {
-                sh 'echo $GOOGLE_CREDENTIALS > /tmp/gcp-key.json'
-                sh 'gcloud auth activate-service-account --key-file=/tmp/gcp-key.json'
-                sh 'gcloud config set project $PROJECT_ID'
+                git branch: 'main', url: 'https://github.com/your-username/terraform-gke.git'
             }
         }
 
         stage('Initialize Terraform') {
             steps {
-                sh 'terraform init'
+                script {
+                    sh '''
+                        cd terraform-gke
+                        terraform init
+                    '''
+                }
             }
         }
 
         stage('Plan Terraform') {
             steps {
-                sh 'terraform plan'
+                script {
+                    sh '''
+                        cd terraform-gke
+                        terraform plan -out=tfplan
+                    '''
+                }
             }
         }
 
         stage('Apply Terraform') {
             steps {
-                sh 'terraform apply -auto-approve'
+                script {
+                    sh '''
+                        cd terraform-gke
+                        terraform apply -auto-approve tfplan
+                    '''
+                }
             }
-        }
-    }
-
-    post {
-        always {
-            sh 'rm -f /tmp/gcp-key.json'
         }
     }
 }
