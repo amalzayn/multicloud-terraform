@@ -16,7 +16,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        cd terraform-gke
+                        cd gke
                         terraform init
                     '''
                 }
