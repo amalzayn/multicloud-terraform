@@ -1,47 +1,59 @@
 pipeline {
-    agent any  
+    agent any
 
     environment {
-        GCP_SERVICE_ACCOUNT = credentials('gcp-key') // Use Jenkins credential store
+        PROJECT_ID = 'symbolic-math-446906-f2'
+        REGION = 'us-central1'
+        CLUSTER_NAME = 'test-cluster'
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/amalzayn/multicloud-terraform.git'
+                checkout scm
             }
         }
 
-        stage('Initialize Terraform') {
+        stage('Authenticate to GCP') {
             steps {
-                script {
-                    sh '''
-                        cd gke
-                       /usr/local/bin/terraform init
-                    '''
+                withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    sh """
+                        gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+                        gcloud config set project $PROJECT_ID
+                    """
                 }
             }
         }
 
-        stage('Plan Terraform') {
+        stage('Terraform Init & Plan') {
             steps {
-                script {
-                    sh '''
-                        cd gke
-                       /usr/local/bin/terraform plan -out=tfplan
-                    '''
+                withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    sh """
+                        export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                        terraform init
+                        terraform plan -out=tfplan
+                    """
                 }
             }
         }
 
-        stage('Apply Terraform') {
+        stage('Terraform Apply') {
             steps {
-                script {
-                    sh '''
-                        cd gke
-                        /usr/local/bin/terraform apply -auto-approve tfplan
-                    '''
+                withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    sh """
+                        export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                        terraform apply -auto-approve tfplan
+                    """
                 }
+            }
+        }
+
+        stage('Configure Kubectl for GKE') {
+            steps {
+                sh """
+                    gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT_ID
+                    kubectl get nodes
+                """
             }
         }
     }
