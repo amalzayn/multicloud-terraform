@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        PATH = "/opt/homebrew/bin/terraform:$PATH"  // Ensure Terraform is in Jenkins' PATH
+        PATH = "/opt/homebrew/bin/terraform:$PATH"  // Ensure Terraform is in PATH
+        GCP_KEY_FILE = "/Users/ftzayn/Desktop/multi-cloud1/learn-terraform-multicloud-kubernetes/gke/terraform-key.json"
     }
 
     stages {
@@ -30,19 +31,23 @@ pipeline {
         stage('Terraform Init & Apply') {
             steps {
                 dir('/Users/ftzayn/Desktop/multi-cloud1/learn-terraform-multicloud-kubernetes/gke') {
-                    withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                        sh '''
-                            export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
-                            echo "Authenticating with GCP..."
-                            gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-
-                            echo "Initializing Terraform..."
-                            terraform init
-
-                            echo "Applying Terraform changes..."
-                            terraform apply -auto-approve
-                        '''
+                    script {
+                        if (!fileExists(env.GCP_KEY_FILE)) {
+                            error "GCP service account key file not found: ${env.GCP_KEY_FILE}"
+                        }
                     }
+                    
+                    sh '''
+                        export GOOGLE_APPLICATION_CREDENTIALS=$GCP_KEY_FILE
+                        echo "Authenticating with GCP..."
+                        gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+
+                        echo "Initializing Terraform..."
+                        terraform init
+
+                        echo "Applying Terraform changes..."
+                        terraform apply -auto-approve
+                    '''
                 }
             }
         }
