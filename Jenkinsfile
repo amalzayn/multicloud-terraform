@@ -2,33 +2,44 @@ pipeline {
     agent any
 
     environment {
-        PROJECT_ID = 'symbolic-math-446906-f2'
-        REGION = 'us-central1'
-        CLUSTER_NAME = 'test01-cluster'
-        LOCAL_REPO = '/Users/ftzayn/Desktop/multi-cloud1/learn-terraform-multicloud-kubernetes/gke'  // Change to your actual path
+        PATH = "/opt/homebrew/bin/terraform:$PATH"  // Ensure Terraform is in Jenkins' PATH
     }
 
     stages {
+        stage('Setup') {
+            steps {
+                script {
+                    echo "Running Pipeline on Jenkins Node"
+                    sh 'whoami'
+                }
+            }
+        }
+
         stage('Use Local Repo') {
             steps {
                 script {
-                    if (!fileExists(env.LOCAL_REPO)) {
-                        error "Local repo path not found: ${env.LOCAL_REPO}"
+                    def localRepo = "/Users/ftzayn/Desktop/multi-cloud1/learn-terraform-multicloud-kubernetes/gke"
+                    if (!fileExists(localRepo)) {
+                        error "Local repository not found: ${localRepo}"
                     }
-                }
-                dir(env.LOCAL_REPO) {
-                    sh 'ls -l'  // Debugging: List files in the local repo
+                    echo "Using local repo at ${localRepo}"
                 }
             }
         }
 
         stage('Terraform Init & Apply') {
             steps {
-                dir(env.LOCAL_REPO) {
+                dir('/Users/ftzayn/Desktop/multi-cloud1/learn-terraform-multicloud-kubernetes/gke') {
                     withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                         sh '''
                             export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                            echo "Authenticating with GCP..."
+                            gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+
+                            echo "Initializing Terraform..."
                             terraform init
+
+                            echo "Applying Terraform changes..."
                             terraform apply -auto-approve
                         '''
                     }
