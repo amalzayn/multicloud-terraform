@@ -4,57 +4,35 @@ pipeline {
     environment {
         PROJECT_ID = 'symbolic-math-446906-f2'
         REGION = 'us-central1'
-        CLUSTER_NAME = 'test-cluster'
+        CLUSTER_NAME = 'test01-cluster'
+        LOCAL_REPO = '/Users/ftzayn/Desktop/multi-cloud1/learn-terraform-multicloud-kubernetes/gke'  // Change to your actual path
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Use Local Repo') {
             steps {
-                checkout scm
-            }
-        }
-
-        stage('Authenticate to GCP') {
-            steps {
-                withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh '''
-                         gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-                         gcloud config set project $PROJECT_ID
-                    '''
-
+                script {
+                    if (!fileExists(env.LOCAL_REPO)) {
+                        error "Local repo path not found: ${env.LOCAL_REPO}"
+                    }
+                }
+                dir(env.LOCAL_REPO) {
+                    sh 'ls -l'  // Debugging: List files in the local repo
                 }
             }
         }
 
-        stage('Terraform Init & Plan') {
+        stage('Terraform Init & Apply') {
             steps {
-                withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh """
-                        export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
-                        terraform init
-                        terraform plan -out=tfplan
-                    """
+                dir(env.LOCAL_REPO) {
+                    withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                        sh '''
+                            export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                            terraform init
+                            terraform apply -auto-approve
+                        '''
+                    }
                 }
-            }
-        }
-
-        stage('Terraform Apply') {
-            steps {
-                withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh """
-                        export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
-                        terraform apply -auto-approve tfplan
-                    """
-                }
-            }
-        }
-
-        stage('Configure Kubectl for GKE') {
-            steps {
-                sh """
-                    gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT_ID
-                    kubectl get nodes
-                """
             }
         }
     }
