@@ -2,7 +2,7 @@ pipeline {
     agent any  
 
     environment {
-        GCP_SERVICE_ACCOUNT = credentials('gcp-json-key') // Use Jenkins credential store
+        GCP_SERVICE_ACCOUNT = credentials('gcp-key') // Use Jenkins credential store
     }
 
     stages {
